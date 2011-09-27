@@ -134,7 +134,9 @@ UHD_STATIC_BLOCK(register_usrp1_device){
 /***********************************************************************
  * Structors
  **********************************************************************/
-usrp1_impl::usrp1_impl(const device_addr_t &device_addr){
+usrp1_impl::usrp1_impl(const device_addr_t &device_addr):
+    _device_addr(device_addr)
+{
     UHD_MSG(status) << "Opening a USRP1 device..." << std::endl;
 
     //extract the FPGA path for the USRP1

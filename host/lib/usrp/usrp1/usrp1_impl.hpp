@@ -74,6 +74,7 @@ public:
 
 private:
     uhd::property_tree::sptr _tree;
+    const uhd::device_addr_t _device_addr;
 
     //device properties interface
     uhd::property_tree::sptr get_tree(void) const{

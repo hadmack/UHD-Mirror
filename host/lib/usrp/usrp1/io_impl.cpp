@@ -223,6 +223,17 @@ void usrp1_impl::io_init(void){
     _rx_otw_type.shift = 0;
     _rx_otw_type.byteorder = otw_type_t::BO_LITTLE_ENDIAN;
 
+    if (_device_addr.get("rx_otw_type", "0") == "item16"){
+        _rx_otw_type.width = 8;
+        _iface->poke32(FR_RX_FORMAT, 0
+            | (0 << bmFR_RX_FORMAT_SHIFT_SHIFT) //arith shift right by 0 for lower bits
+            //| (8 << bmFR_RX_FORMAT_SHIFT_SHIFT) //arith shift right by 8 for upper bits
+            | (8 << bmFR_RX_FORMAT_WIDTH_SHIFT)
+            | bmFR_RX_FORMAT_WANT_Q
+            | bmFR_RX_FORMAT_BYPASS_HB
+        );
+    }
+
     _tx_otw_type.width = 16;
     _tx_otw_type.shift = 0;
     _tx_otw_type.byteorder = otw_type_t::BO_LITTLE_ENDIAN;
@@ -380,7 +391,7 @@ double usrp1_impl::update_rx_samp_rate(const double samp_rate){
     boost::mutex::scoped_lock lock = _io_impl->recv_handler.get_scoped_lock();
 
     const size_t rate = uhd::clip<size_t>(
-        boost::math::iround(_master_clock_rate / samp_rate), size_t(std::ceil(_master_clock_rate / 8e6)), 256
+        boost::math::iround(_master_clock_rate / samp_rate), size_t(std::ceil(_master_clock_rate / 16e6)), 256
     );
 
     bool s = this->disable_rx();

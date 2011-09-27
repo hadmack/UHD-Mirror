@@ -74,6 +74,52 @@ DECLARE_CONVERTER(convert_item32_1_to_$(cpu_type)_$(width)_$(swap), PRIORITY_GEN
     }
 }
 """
+TMPL_CONV_TO_FROM_ITEM16_1 = """
+DECLARE_CONVERTER(convert_$(cpu_type)_1_to_item16_1_$(swap), PRIORITY_GENERAL){
+    const $(cpu_type)_t *input = reinterpret_cast<const $(cpu_type)_t *>(inputs[0]);
+    item16_t *output = reinterpret_cast<item16_t *>(outputs[0]);
+
+    for (size_t i = 0; i < nsamps; i++){
+        output[i] = $(swap_fcn)($(cpu_type)_to_item16(input[i], float(scale_factor)));
+    }
+}
+
+DECLARE_CONVERTER(convert_item16_1_to_$(cpu_type)_1_$(swap), PRIORITY_GENERAL){
+    const item16_t *input = reinterpret_cast<const item16_t *>(inputs[0]);
+    $(cpu_type)_t *output = reinterpret_cast<$(cpu_type)_t *>(outputs[0]);
+
+    for (size_t i = 0; i < nsamps; i++){
+        output[i] = item16_to_$(cpu_type)($(swap_fcn)(input[i]), float(scale_factor));
+    }
+}
+"""
+TMPL_CONV_TO_FROM_ITEM16_X = """
+DECLARE_CONVERTER(convert_$(cpu_type)_$(width)_to_item16_1_$(swap), PRIORITY_GENERAL){
+    #for $w in range($width)
+    const $(cpu_type)_t *input$(w) = reinterpret_cast<const $(cpu_type)_t *>(inputs[$(w)]);
+    #end for
+    item16_t *output = reinterpret_cast<item16_t *>(outputs[0]);
+
+    for (size_t i = 0, j = 0; i < nsamps; i++){
+        #for $w in range($width)
+        output[j++] = $(swap_fcn)($(cpu_type)_to_item16(input$(w)[i], float(scale_factor)));
+        #end for
+    }
+}
+
+DECLARE_CONVERTER(convert_item16_1_to_$(cpu_type)_$(width)_$(swap), PRIORITY_GENERAL){
+    const item16_t *input = reinterpret_cast<const item16_t *>(inputs[0]);
+    #for $w in range($width)
+    $(cpu_type)_t *output$(w) = reinterpret_cast<$(cpu_type)_t *>(outputs[$(w)]);
+    #end for
+
+    for (size_t i = 0, j = 0; i < nsamps; i++){
+        #for $w in range($width)
+        output$(w)[i] = item16_to_$(cpu_type)($(swap_fcn)(input[j++]), float(scale_factor));
+        #end for
+    }
+}
+"""
 
 def parse_tmpl(_tmpl_text, **kwargs):
     from Cheetah.Template import Template
@@ -88,6 +134,10 @@ if __name__ == '__main__':
             for cpu_type in 'fc64', 'fc32', 'sc16':
                 output += parse_tmpl(
                     TMPL_CONV_TO_FROM_ITEM32_1 if width == 1 else TMPL_CONV_TO_FROM_ITEM32_X,
+                    width=width, swap=swap, swap_fcn=swap_fcn, cpu_type=cpu_type
+                )
+                output += parse_tmpl(
+                    TMPL_CONV_TO_FROM_ITEM16_1 if width == 1 else TMPL_CONV_TO_FROM_ITEM16_X,
                     width=width, swap=swap, swap_fcn=swap_fcn, cpu_type=cpu_type
                 )
     open(sys.argv[1], 'w').write(output)

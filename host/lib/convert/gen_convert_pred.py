@@ -77,7 +77,8 @@ pred_type make_pred(const std::string &markup, dir_type &dir){
         else if (cpu_type == "sc8")  pred |= $ph.sc8_p;
         else throw pred_error("unhandled io type " + cpu_type);
 
-        if (otw_type == "item32") pred |= $ph.item32_p;
+        if      (otw_type == "item32") pred |= $ph.item32_p;
+        else if (otw_type == "item16") pred |= $ph.item16_p;
         else throw pred_error("unhandled otw type " + otw_type);
 
         int num_inputs = boost::lexical_cast<int>(num_inps);
@@ -137,13 +138,23 @@ static pred_vector_type get_pred_num_io_table(void){
     return table;
 }
 
+static pred_vector_type get_pred_num_otw_table(void){
+    pred_vector_type table(pred_table_max_size, pred_table_wildcard);
+    table[4] = $ph.item32_p;
+    table[2] = $ph.item16_p;
+    return table;
+}
+
 UHD_INLINE pred_type make_pred(
     const io_type_t &io_type,
     const otw_type_t &otw_type,
     size_t num_inputs,
     size_t num_outputs
 ){
-    pred_type pred = $ph.item32_p; //only item32 supported as of now
+    pred_type pred = 0;
+
+    static const pred_vector_type pred_otw_type_table(get_pred_num_otw_table());
+    pred |= pred_otw_type_table[pred_table_index(otw_type.get_sample_size())];
 
     static const pred_vector_type pred_byte_order_table(get_pred_byte_order_table());
     pred |= pred_byte_order_table[pred_table_index(otw_type.byteorder)];
@@ -167,17 +178,18 @@ def parse_tmpl(_tmpl_text, **kwargs):
     return str(Template(_tmpl_text, kwargs))
 
 class ph:
-    bswap_p  = 0b00001
-    nswap_p  = 0b00000
-    item32_p = 0b00000
-    sc8_p    = 0b00000
-    sc16_p   = 0b00010
-    fc32_p   = 0b00100
-    fc64_p   = 0b00110
-    chan1_p  = 0b00000
-    chan2_p  = 0b01000
-    chan3_p  = 0b10000
-    chan4_p  = 0b11000
+    bswap_p  = 0b000001
+    nswap_p  = 0b000000
+    sc8_p    = 0b000000
+    sc16_p   = 0b000010
+    fc32_p   = 0b000100
+    fc64_p   = 0b000110
+    chan1_p  = 0b000000
+    chan2_p  = 0b001000
+    chan3_p  = 0b010000
+    chan4_p  = 0b011000
+    item32_p = 0b000000
+    item16_p = 0b100000
 
 if __name__ == '__main__':
     import sys, os
